@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Profile Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e1e2d, #2d2d4e);
+            color: #f5f5f5;
+            height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        .container {
+            padding-top: 4rem;
+        }
+        .profile-container {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #333;
+            position: relative;
+            color: #e0e0e0;
+            transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
+        }
+        .profile-container:hover {
+            transform: scale(1.03);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 1);
+        }
+        .profile-image {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 6px solid #00bcd4;
+            margin-right: 1.5rem;
+            transition: border-color 0.3s;
+        }
+        .profile-image:hover {
+            border-color: #0097a7;
+        }
+        .profile-details {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .profile-details h3 {
+            margin-bottom: 0.5rem;
+            color: #00bcd4;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .profile-details p {
+            margin-bottom: 0.3rem;
+            color: #b0bec5;
+            font-size: 1.1rem;
+        }
+        .social-icons {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .social-icons a {
+            color: #00bcd4;
+            font-size: 1.8rem;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .social-icons a:hover {
+            color: #0097a7;
+            transform: scale(1.2);
+        }
+        .repo-card {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1.5rem;
+            transition: box-shadow 0.3s, transform 0.3s;
+            color: #e0e0e0;
+        }
+        .repo-card:hover {
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+            transform: scale(1.02);
+        }
+        .repo-card .card-body {
+            padding: 1.5rem;
+        }
+        .btn-custom {
+            background-color: #00bcd4;
+            color: #fff;
+            border: none;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .btn-custom:hover {
+            background-color: #0097a7;
+            transform: scale(1.05);
+        }
+        .btn-success-custom {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .btn-success-custom:hover {
+            background-color: #388e3c;
+            transform: scale(1.05);
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        .spinner-border {
+            width: 5rem;
+            height: 5rem;
+            border-width: 0.6em;
+            border-top-color: #00bcd4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4 text-light">GitHub Profile Viewer</h1>
+        <div class="mb-4 d-flex justify-content-center">
+            <input type="text" id="username" class="form-control w-75" placeholder="Enter GitHub username" style="border: 2px solid #00bcd4; border-radius: 0.5rem; background: rgba(255, 255, 255, 0.1); color: #f5f5f5;">
+            <button class="btn btn-custom ms-2 w-25" onclick="getProfile()">Get Profile</button>
+        </div>
+        <div id="info-container" class="profile-container"></div>
+        <div id="repo-list" class="row"></div>
+    </div>
+    <div id="loading" class="loading-overlay">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script>
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+        function getProfile() {
+            const username = document.getElementById('username').value;
+            const infoContainer = document.getElementById('info-container');
+            const repoList = document.getElementById('repo-list');
+            infoContainer.innerHTML = '';
+            repoList.innerHTML = '';
+
+            showLoading(true);
+
+            fetch(`https://api.github.com/users/${username}`)
+                .then(response => {
+                    showLoading(false);
+                    if (response.status === 404) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'User not found',
+                            text: 'The GitHub username you entered does not exist.',
+                        });
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        const socialLinks = `
+                            ${data.blog ? `<a href="${data.blog}" target="_blank" class="btn btn-link"><i class="fas fa-link"></i></a>` : ''}
+                            ${data.twitter_username ? `<a href="https://twitter.com/${data.twitter_username}" target="_blank"><i class="fab fa-twitter"></i></a>` : ''}
+                            ${data.linkedin_username ? `<a href="https://www.linkedin.com/in/${data.linkedin_username}" target="_blank"><i class="fab fa-linkedin"></i></a>` : ''}
+                            ${data.html_url ? `<a href="${data.html_url}" target="_blank"><i class="fab fa-github"></i></a>` : ''}
+                        `;
+
+                        infoContainer.innerHTML = `
+                            <div class="profile-details">
+                                <img src="${data.avatar_url}" alt="Profile Picture" class="profile-image">
+                                <div>
+                                    <h3>${data.name ? data.name : 'N/A'}</h3>
+                                    <p><i class="fas fa-envelope"></i> ${data.email ? data.email : 'N/A'}</p>
+                                    <p><i class="fas fa-map-marker-alt"></i> ${data.location ? data.location : 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="social-icons">
+                                ${socialLinks}
+                            </div>
+                        `;
+
+                        getRepos(username);
+                    }
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error('Error:', error);
+                });
+        }
+
+        function getRepos(username) {
+            const repoList = document.getElementById('repo-list');
+            repoList.innerHTML = '';
+
+            fetch(`https://api.github.com/users/${username}/repos`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(repo => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4';
+                        col.innerHTML = `
+                            <div class="card repo-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${repo.name}</h5>
+                                    <p class="card-text">${repo.description ? repo.description : 'No description available'}</p>
+                                    <a href="${repo.html_url}" target="_blank" class="btn btn-custom btn-sm"><i class="fab fa-github"></i> View Repo</a>
+                                    ${repo.homepage ? `<a href="${repo.homepage}" target="_blank" class="btn btn-success-custom btn-sm"><i class="fas fa-eye"></i> Live Demo</a>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        repoList.appendChild(col);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+    </script>
+</body>
+</html>
